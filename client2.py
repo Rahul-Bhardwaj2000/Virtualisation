@@ -1,8 +1,8 @@
 import socket
 import json
 import time
-HOST = '127.0.0.1'
-# HOST = '192.168.122.24'  # The server's hostname or IP address
+# HOST = '127.0.0.1'
+HOST = '192.168.122.88'  # The server's hostname or IP address
 PORT = 65432        # The port used by the server
 
 

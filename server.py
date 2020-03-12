@@ -1,8 +1,8 @@
 import socket
 import json
 
-HOST = '127.0.0.1'
-# HOST = '192.168.122.24'  # Standard loopback interface address (localhost)
+# HOST = '127.0.0.1'
+HOST = '192.168.122.88'  # The server's hostname or IP address
 PORT = 65432        # Port to listen on (non-privileged ports are > 1023)
 
 
