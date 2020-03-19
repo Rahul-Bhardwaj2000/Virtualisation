@@ -6,7 +6,9 @@ from domain import conf
 import socket
 import json
 import threading
-PORT = 65431        # The port used by the server
+from createVM import StartVm
+import matplotlib.pyplot as plt
+PORT = 65441       # The port used by the server
 LOCALHOST='127.0.0.1'
 MAX_SIZE=1024
 
@@ -37,6 +39,8 @@ lasttime=-1
 
 
 def getIP(domainName):
+	StartVm(VMconn)
+	time.sleep(40)
 	dom2 = VMconn.lookupByName(domainName)	
 	ifaces = dom2.interfaceAddresses(libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_AGENT, 0)
 	return (ifaces['ens3']['addrs'][0]['addr'])
@@ -52,27 +56,60 @@ def notify_client(s):
 	s.recv(MAX_SIZE)
 
 
+def changeLoad(val,s):
+	message="CHANGE_LOAD"
+	s.sendall(str.encode(message))
+	s.recv(MAX_SIZE)
+	val = str(val)
+	s.sendall(str.encode(val))
+	s.recv(MAX_SIZE)	
+
+
+x_=[10**i for i in range(7)]
+y_=[0 for i in range(7)]
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 	s.bind((LOCALHOST, PORT))
 	s.listen()
 	conn, addr = s.accept()
 	counter=0
 	largeLOAD=0
+
+	# for i in range(7):
+	# 	load=0
+	# 	changeLoad(x_[i],conn)
 	while True:
 		time.sleep(1)
 		cpuStats=dom.getCPUStats(True)
 		vCpuTime=getvCpuTime(cpuStats)
-		diff = (vCpuTime-lasttime)/1e9
+		diff = abs(vCpuTime-lasttime)/1e9
+		temp=lasttime
 		lasttime=vCpuTime
+		if temp==-1:
+			continue
+		counter+=1
 		if diff*1000>=300 and counter>0:
 			largeLOAD+=1
 		else:
 			largeLOAD=0
 		if largeLOAD>=10:
+			print("High Load observed on VM's")
+			print("Starting Another VM")
 			largeLOAD=0
 			notify_client(conn)
-		counter+=1
-		print("vCPU time per second of CPU Time", diff*1000)
+		print("vCPU time per second of CPU Time", diff*1000,"CurrentLoad")
+
+		# load+=diff*1000
+		# if counter%10==0:
+		# 	break
+	load=load/10
+	y_[i]=load
+
 	print(dom.ID(),dom.name())
-	conn.close()
-	exit(0)
+	# conn.close()
+	# exit(0)
+
+
+VMconn.close()
+plt.plot(x_,y_)
+plt.xscale('log')
+plt.show()

@@ -6,7 +6,7 @@ import threading
 HOST = '192.168.122.43'  # The server's hostname or IP address
 PORT = 65432        # The port used by the server
 
-MANAGER_PORT = 65431        # The port used by the server
+MANAGER_PORT = 65441        # The port used by the server
 NUM_OPEN=1
 
 LOCALHOST='127.0.0.1'
@@ -15,6 +15,8 @@ MAX_SIZE=1024
 HighLoad=1000000 #High Load
 LowLoad=1 #High Load
 CurrentLoad=LowLoad
+
+
 def GetRequest(key,s):
 	s.sendall(str.encode("GET"))
 	ack=s.recv(MAX_SIZE).decode()
@@ -29,7 +31,7 @@ def StartClient(s):
 	while True:
 		key="1"
 		ans=GetRequest(key,s)
-		stop_time=(1000**(NUM_OPEN-1)/CurrentLoad)
+		stop_time=(1000000**(NUM_OPEN-1)/CurrentLoad)
 		time.sleep(stop_time)
 		counter+=1
 
@@ -44,17 +46,18 @@ def LoadManagement():
 	global CurrentLoad
 	while True:
 		trigger=input()
-		print(trigger)
 		if trigger=="INCREASE":
 			CurrentLoad=HighLoad
 		elif trigger=="DECREASE":
 			CurrentLoad=LowLoad
+		elif trigger=="LOAD":
+			print(CurrentLoad)
 
 
 
 def TalkWithVMManager():
-	print("abc")
 	global NUM_OPEN
+	global CurrentLoad
 	s=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 	s.connect((LOCALHOST,MANAGER_PORT))
 	print("Connected to Manager")
@@ -62,12 +65,20 @@ def TalkWithVMManager():
 		update=s.recv(MAX_SIZE).decode()
 		if update=="NEW_VM":
 			s.sendall(str.encode("SEND_IP_AND_PORT"))
-		else:
-			IP_AND_PORT=json.loads(update)
+			data=s.recv(MAX_SIZE).decode()
+		# else:
+			IP_AND_PORT=json.loads(data)
 			new_s=CreateConnection(IP_AND_PORT[0],IP_AND_PORT[1])
 			new_thread=threading.Thread(target=StartClient,args=(new_s,))
 			NUM_OPEN+=1
 			new_thread.start()
+			s.sendall(str.encode("THANKS"))
+
+		elif update=="CHANGE_LOAD":
+			s.sendall(str.encode("OK"))
+			data=s.recv(MAX_SIZE).decode()
+			val=int(data)
+			CurrentLoad=val
 			s.sendall(str.encode("THANKS"))
 
 
